@@ -54,7 +54,7 @@ class OfflineSyncManager {
     try {
       await _localDb.database;
       await refreshPendingCount();
-      await checkOnlineStatus();
+      unawaited(checkOnlineStatus());
       _startIdleCountdownTimer();
       debugPrint('POSAN Offline Sync Manager active (2-minute idle timer started).');
     } catch (e) {
@@ -289,7 +289,7 @@ class OfflineSyncManager {
     if (isOnlineNotifier.value) {
       unawaited(performAutoSync(trigger: 'Auto (Transaksi Baru)', merchantId: mId));
     } else {
-      syncStatusMessageNotifier.value = 'Tersimpan di SQLite (Offline). Auto-sync dalam 2 menit idle.';
+      syncStatusMessageNotifier.value = 'Tersimpan di penyimpanan lokal. Auto-sync dalam 2 menit idle.';
     }
     debugPrint('Transaction ${transaction.id} saved in SQLite (Merchant: $mId). Pending count: ${pendingSyncCountNotifier.value}');
   }
@@ -310,11 +310,11 @@ class OfflineSyncManager {
       // 1. Check connectivity
       final online = await checkOnlineStatus();
       if (!online) {
-        syncStatusMessageNotifier.value = 'Mode Offline (Server PostgreSQL belum terjangkau).';
+        syncStatusMessageNotifier.value = 'Mode Offline (Server belum terjangkau).';
         await _localDb.logSyncEvent(
           triggerType: trigger,
           status: 'offline',
-          message: 'Server PostgreSQL online tidak terjangkau. Transaksi tetap tersimpan aman di SQLite.',
+          message: 'Server online tidak terjangkau. Transaksi tetap tersimpan aman di penyimpanan lokal.',
         );
         isSyncingNotifier.value = false;
         return false;
@@ -375,13 +375,13 @@ class OfflineSyncManager {
       final nowFormatted = DateFormat('HH:mm:ss').format(DateTime.now());
       lastSyncTimeNotifier.value = '$nowFormatted WIB';
       syncStatusMessageNotifier.value = syncedSuccessCount > 0
-          ? 'Berhasil sinkronisasi $syncedSuccessCount transaksi ke database PostgreSQL.'
-          : 'Database SQLite dan PostgreSQL telah tersinkronkan ($nowFormatted WIB).';
+          ? 'Berhasil sinkronisasi $syncedSuccessCount transaksi ke server online.'
+          : 'Penyimpanan lokal dan server telah tersinkronkan ($nowFormatted WIB).';
 
       await _localDb.logSyncEvent(
         triggerType: trigger,
         status: 'success',
-        message: 'Sinkronisasi berhasil: $syncedSuccessCount transaksi terunggah ke PostgreSQL.',
+        message: 'Sinkronisasi berhasil: $syncedSuccessCount transaksi terunggah ke server online.',
         itemsSynced: syncedSuccessCount,
       );
 

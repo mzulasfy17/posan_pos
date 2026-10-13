@@ -17,6 +17,7 @@ import '../cashier_cart/cashier_cart_screen.dart';
 import '../cashier_history/cashier_history_view.dart';
 import '../cashier_history/widgets/transaction_detail_modal.dart';
 import '../cashier_others/cashier_others_view.dart';
+import '../attendance/attendance_screen.dart';
 import 'cashier_catalog_view.dart';
 import 'widgets/cashier_cart_panel.dart';
 import 'widgets/floating_cart_bar.dart';
@@ -41,7 +42,7 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
   late List<RecentTransactionModel> _recentTransactions;
   String _selectedCategoryId = 'all';
   String _currentOrderType = 'Dine In';
-  int _currentNavIndex = 0; // 0: Beranda, 1: Pesanan, 2: Riwayat, 3: Lainnya
+  int _currentNavIndex = 0; // 0: Beranda, 1: Pesanan, 2: Riwayat, 3: Absen, 4: Lainnya
   bool _isGridView = true;
 
   @override
@@ -363,8 +364,8 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
             Expanded(
               child: Text(
                 success
-                    ? 'Sinkronisasi SQLite ke PostgreSQL berhasil diselesaikan.'
-                    : 'Mode Offline Aktif. Transaksi tersimpan di SQLite lokal dan otomatis disinkronkan saat online.',
+                    ? 'Sinkronisasi offline ke server berhasil diselesaikan.'
+                    : 'Mode Offline Aktif. Transaksi tersimpan di penyimpanan lokal dan otomatis disinkronkan saat online.',
               ),
             ),
           ],
@@ -398,7 +399,7 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
             ),
             SizedBox(width: 10),
             Expanded(
-              child: Text('Mengunduh katalog menu dan harga terbaru dari database...'),
+              child: Text('Mengunduh katalog menu dan harga terbaru dari server...'),
             ),
           ],
         ),
@@ -423,7 +424,7 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
             Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Katalog menu dan harga berhasil diperbarui & disimpan di SQLite.'),
+              child: Text('Katalog menu dan harga berhasil diperbarui & disimpan di penyimpanan lokal.'),
             ),
           ],
         ),
@@ -490,7 +491,7 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Laporan rekonsiliasi kas telah tersimpan di sistem SQLite lokal.',
+              'Laporan rekonsiliasi kas telah tersimpan di sistem penyimpanan lokal.',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
@@ -714,7 +715,7 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Transaksi ${newTransaction.id} tersimpan di SQLite. Auto-sync dalam 2 menit idle.',
+                'Transaksi ${newTransaction.id} tersimpan di penyimpanan lokal. Auto-sync dalam 2 menit idle.',
               ),
             ),
           ],
@@ -880,7 +881,12 @@ class _CashierHomeScreenState extends State<CashierHomeScreen> {
               ),
             ),
 
-            // Tab 3: Pengaturan & Lainnya
+            // Tab 3: Absen (Kehadiran Karyawan)
+            const AttendanceScreen(
+              isStandalone: false,
+            ),
+
+            // Tab 4: Pengaturan & Lainnya
             MaxContentWidth(
               maxWidth: 880,
               child: CashierOthersView(

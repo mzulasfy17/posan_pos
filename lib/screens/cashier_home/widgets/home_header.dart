@@ -137,8 +137,8 @@ class HomeHeader extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               isOnline
-                                  ? (pendingCount > 0 ? '$pendingCount pending ($countdownStr)' : 'Postgre • $countdownStr')
-                                  : 'SQLite Offline',
+                                  ? (pendingCount > 0 ? '$pendingCount pending ($countdownStr)' : 'Online • $countdownStr')
+                                  : 'Mode Offline',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,

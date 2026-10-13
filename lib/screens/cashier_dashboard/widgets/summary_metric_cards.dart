@@ -111,7 +111,7 @@ class SummaryMetricCards extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${session.todayTransactionCount} transaksi (SQLite)',
+                              '${session.todayTransactionCount} transaksi (Lokal)',
                               style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w500,
@@ -131,7 +131,7 @@ class SummaryMetricCards extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // Right Card: Sinkronisasi Data PostgreSQL & SQLite (with live 2-min countdown)
+          // Right Card: Sinkronisasi Data Cloud & Offline (with live 2-min countdown)
           Expanded(
             child: ValueListenableBuilder<int>(
               valueListenable: syncManager.pendingSyncCountNotifier,
@@ -204,7 +204,7 @@ class SummaryMetricCards extends StatelessWidget {
                                       const SizedBox(width: 7),
                                       Expanded(
                                         child: Text(
-                                          isPending ? 'Perlu Sinkron' : 'PostgreSQL Sync',
+                                          isPending ? 'Perlu Sinkron' : 'Cloud Sync',
                                           style: TextStyle(
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w600,
@@ -227,7 +227,7 @@ class SummaryMetricCards extends StatelessWidget {
                                     child: Text(
                                       isPending
                                           ? '$pendingCount Pending ($countdownStr)'
-                                          : 'SQLite Aktif ($countdownStr)',
+                                          : 'Lokal Aktif ($countdownStr)',
                                       style: TextStyle(
                                         fontSize: 15.5,
                                         fontWeight: FontWeight.w800,

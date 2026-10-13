@@ -63,6 +63,14 @@ class PosanBottomNav extends StatelessWidget {
               Expanded(
                 child: _buildNavItem(
                   index: 3,
+                  icon: Icons.event_available_outlined,
+                  activeIcon: Icons.event_available_rounded,
+                  label: 'Absen',
+                ),
+              ),
+              Expanded(
+                child: _buildNavItem(
+                  index: 4,
                   icon: Icons.tune_rounded,
                   activeIcon: Icons.tune_rounded,
                   label: 'Lainnya',

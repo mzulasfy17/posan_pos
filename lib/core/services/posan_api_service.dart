@@ -17,6 +17,10 @@ class PosanApiService {
     _baseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
+  void resetBaseUrl() {
+    _baseUrl = ApiConstants.defaultBaseUrl;
+  }
+
   String? get authToken => _authToken;
   void setAuthToken(String? token) {
     _authToken = token;

@@ -138,7 +138,7 @@ class CashierOthersView extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'POSAN Mobile POS v2.4.0 (Build 240)',
+                  'POSAN Mobile POS v.1.1.0',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -147,7 +147,7 @@ class CashierOthersView extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'PT Posan Digital Indonesia • Offline-First Engine',
+                  'epay • Offline-First Engine',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textMuted,

@@ -1,6 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/offline_sync_manager.dart';
+import '../../core/services/posan_api_service.dart';
+import '../../core/services/screen_wakelock_service.dart';
+import '../../core/services/thermal_printer_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../auth/login_screen.dart';
@@ -14,7 +20,7 @@ class SplashScreen extends StatefulWidget {
 
   const SplashScreen({
     super.key,
-    this.duration = const Duration(milliseconds: 2400),
+    this.duration = const Duration(milliseconds: 1000),
     this.autoNavigate = true,
   });
 
@@ -27,20 +33,16 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  Timer? _timer;
-  String _statusText = 'Memuat database lokal...';
-  double _progressValue = 0.2;
+  String _statusText = 'Memuat data lokal...';
+  double _progressValue = 0.25;
 
   @override
   void initState() {
     super.initState();
 
-    // Pulihkan sesi login kasir secara non-blocking selama splash
-    AuthService().restoreSession();
-
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -57,36 +59,66 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animController.forward();
 
-    // Simulated initialization milestones
-    Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
+    // Inisialisasi cepat modul aplikasi selama splash
+    _initAppServices();
+  }
+
+  Future<void> _initAppServices() async {
+    final startTime = DateTime.now();
+
+    // Visual progression halus di detik awal
+    Timer(const Duration(milliseconds: 300), () {
+      if (mounted && _progressValue < 0.75) {
         setState(() {
-          _statusText = 'Memuat katalog menu & harga...';
-          _progressValue = 0.55;
+          _statusText = 'Menyiapkan modul aplikasi...';
+          _progressValue = 0.75;
         });
       }
     });
 
-    Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        setState(() {
-          _statusText = 'Menyiapkan modul printer thermal & offline...';
-          _progressValue = 0.85;
-        });
+    try {
+      // 1. Muat environment (.env)
+      try {
+        await dotenv.load(fileName: ".env");
+        debugPrint('Environment loaded: BASE_URL=${dotenv.env['BASE_URL']}');
+      } catch (e) {
+        debugPrint('Notice: .env file not loaded ($e). Using default/fallback.');
       }
-    });
+      PosanApiService().resetBaseUrl();
 
-    Timer(const Duration(milliseconds: 1900), () {
+      // 2. Inisialisasi tanggal, sesi akun, dan penyimpanan offline dengan timeout maksimal 1.2 detik
+      await Future.wait([
+        initializeDateFormatting('id_ID', null),
+        AuthService().restoreSession(),
+        OfflineSyncManager().initialize(),
+      ]).timeout(const Duration(milliseconds: 1200), onTimeout: () {
+        debugPrint('Init timeout guard reached, continuing...');
+        return [];
+      });
+
+      // 3. Service hardware dijalankan asinkron tanpa menahan navigasi
+      unawaited(ScreenWakelockService().init());
+      unawaited(ThermalPrinterService().init());
+
       if (mounted) {
         setState(() {
           _statusText = 'Sistem kasir siap!';
           _progressValue = 1.0;
         });
       }
-    });
+    } catch (e) {
+      debugPrint('Startup initialization notice: $e');
+    }
 
-    if (widget.autoNavigate) {
-      _timer = Timer(widget.duration, _navigateToHome);
+    // Pastikan durasi splash tampil konsisten 1 - 1.2 detik
+    final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+    final minDuration = widget.duration.inMilliseconds;
+    if (elapsed < minDuration) {
+      await Future.delayed(Duration(milliseconds: minDuration - elapsed));
+    }
+
+    if (mounted && widget.autoNavigate) {
+      _navigateToHome();
     }
   }
 
@@ -122,7 +154,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _timer?.cancel();
     _animController.dispose();
     super.dispose();
   }

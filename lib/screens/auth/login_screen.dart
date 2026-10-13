@@ -316,14 +316,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
               _buildFeatureRow(
-                Icons.storage_rounded,
-                'Terhubung PostgreSQL Database',
+                Icons.cloud_done_rounded,
+                'Terhubung Server Cloud',
                 'Data pesanan stasiun dapur/barista, katalog, dan omset tersinkronkan langsung.',
               ),
               const SizedBox(height: 10),
               _buildFeatureRow(
                 Icons.offline_pin_rounded,
-                'SQLite Offline Engine',
+                'Sistem Offline Mandiri',
                 'Tetap bisa input transaksi dan delivery pesanan saat internet terputus.',
               ),
             ],
@@ -518,9 +518,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 2. PIN / Kata Sandi (Angka Maks 6 Digit)
+            // 2. PIN / Kata Sandi (Bisa PIN 6 Digit atau Password)
             const Text(
-              'PIN / Kata Sandi (Angka Maksimal 6 Digit)',
+              'Kata Sandi / PIN Staf',
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
@@ -531,26 +531,24 @@ class _LoginScreenState extends State<LoginScreen> {
             TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
+                LengthLimitingTextInputFormatter(64),
               ],
               style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 3.0,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
               decoration: InputDecoration(
-                hintText: '••••••',
+                hintText: 'Masukkan PIN 6 digit atau kata sandi',
                 hintStyle: const TextStyle(
-                  fontSize: 14,
-                  letterSpacing: 2.0,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.textMuted,
                 ),
                 prefixIcon: const Icon(
-                  Icons.pin_rounded,
+                  Icons.lock_outline_rounded,
                   size: 20,
                   color: AppColors.textSecondary,
                 ),
@@ -592,10 +590,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
-                  return 'PIN / kata sandi tidak boleh kosong';
-                }
-                if (val.trim().length > 6) {
-                  return 'PIN maksimal 6 digit angka';
+                  return 'Kata sandi / PIN tidak boleh kosong';
                 }
                 return null;
               },
@@ -727,7 +722,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return const Column(
       children: [
         Text(
-          'POSAN v2.4.0 • PostgreSQL & SQLite Engine',
+          'POSAN v.1.1.0 • Cloud & Offline Engine',
           style: TextStyle(
             fontSize: 11,
             color: AppColors.textMuted,
@@ -736,7 +731,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         SizedBox(height: 2),
         Text(
-          'PT Posan Digital Indonesia',
+          'epay',
           style: TextStyle(
             fontSize: 10,
             color: AppColors.textDisabled,

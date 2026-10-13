@@ -7,6 +7,7 @@ import '../../core/services/station_notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/station_order_model.dart';
 import '../auth/login_screen.dart';
+import '../attendance/attendance_screen.dart';
 
 class _OptimisticStatusRecord {
   final String status;
@@ -364,6 +365,34 @@ class _BaristaStationScreenState extends State<BaristaStationScreen> {
           ],
         ),
         actions: [
+          // Menu Absen Karyawan
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.event_available_rounded, size: 16, color: Colors.white),
+              label: const Text(
+                'Absen',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBA6A34),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                minimumSize: const Size(60, 34),
+              ),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AttendanceScreen(isStandalone: true),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+
           // Sound Toggle Button
           IconButton(
             icon: Icon(

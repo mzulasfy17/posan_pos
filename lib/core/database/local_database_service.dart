@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../../models/attendance_model.dart';
 import '../../models/cart_order_model.dart';
 import '../../models/category_model.dart';
 import '../../models/product_model.dart';
@@ -87,6 +88,25 @@ class LocalDatabaseService {
           try {
             // Clean up unassigned legacy synced records so they don't pollute any merchant's view
             await db.execute('DELETE FROM sales_transactions WHERE merchant_id IS NULL AND sync_status = "synced"');
+          } catch (_) {}
+          try {
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS attendances (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                user_name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                merchant_id INTEGER,
+                date TEXT NOT NULL,
+                check_in_time TEXT,
+                check_out_time TEXT,
+                status TEXT NOT NULL,
+                notes TEXT,
+                sync_status TEXT DEFAULT 'synced',
+                updated_at TEXT
+              )
+            ''');
+            await db.execute('CREATE INDEX IF NOT EXISTS idx_att_user_date ON attendances(user_id, date)');
           } catch (_) {}
         },
       );
@@ -239,12 +259,31 @@ class LocalDatabaseService {
       )
     ''');
 
+    // 9. Attendances table (offline-first & sync)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS attendances (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        merchant_id INTEGER,
+        date TEXT NOT NULL,
+        check_in_time TEXT,
+        check_out_time TEXT,
+        status TEXT NOT NULL,
+        notes TEXT,
+        sync_status TEXT DEFAULT 'synced',
+        updated_at TEXT
+      )
+    ''');
+
     // Create indexes for fast querying
     await db.execute('CREATE INDEX IF NOT EXISTS idx_st_sync_status ON sales_transactions(sync_status)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_st_created_at ON sales_transactions(created_at)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_ti_trx_id ON transaction_items(transaction_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_ti_station_status ON transaction_items(station, item_status)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_ol_receipt ON order_logs(receipt_number)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_att_user_date ON attendances(user_id, date)');
   }
 
   Future<void> _onUpgradeTables(Database db, int oldVersion, int newVersion) async {
@@ -1404,6 +1443,117 @@ class LocalDatabaseService {
         closed_at TEXT
       )
     ''');
+  }
+
+  // ===========================================================================
+  // ATTENDANCE METHODS (OFFLINE-FIRST & SYNC)
+  // ===========================================================================
+
+  Future<void> saveAttendanceRecord(AttendanceRecordModel record, {String syncStatus = 'synced'}) async {
+    final db = await database;
+    await db.insert(
+      'attendances',
+      {
+        'id': record.id,
+        'user_id': record.userId,
+        'user_name': record.userName,
+        'role': record.role,
+        'merchant_id': _activeMerchantId,
+        'date': record.date.toIso8601String().split('T')[0],
+        'check_in_time': record.checkInTime?.toIso8601String(),
+        'check_out_time': record.checkOutTime?.toIso8601String(),
+        'status': record.status == AttendanceStatus.working
+            ? 'working'
+            : (record.status == AttendanceStatus.completed ? 'completed' : 'notCheckedIn'),
+        'notes': record.notes,
+        'sync_status': syncStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> saveAttendanceBatch(List<AttendanceRecordModel> records) async {
+    if (records.isEmpty) return;
+    final db = await database;
+    final batch = db.batch();
+    for (final r in records) {
+      batch.insert(
+        'attendances',
+        {
+          'id': r.id,
+          'user_id': r.userId,
+          'user_name': r.userName,
+          'role': r.role,
+          'merchant_id': _activeMerchantId,
+          'date': r.date.toIso8601String().split('T')[0],
+          'check_in_time': r.checkInTime?.toIso8601String(),
+          'check_out_time': r.checkOutTime?.toIso8601String(),
+          'status': r.status == AttendanceStatus.working
+              ? 'working'
+              : (r.status == AttendanceStatus.completed ? 'completed' : 'notCheckedIn'),
+          'notes': r.notes,
+          'sync_status': 'synced',
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<AttendanceRecordModel?> getTodayAttendance(String userId) async {
+    final db = await database;
+    final todayStr = DateTime.now().toIso8601String().split('T')[0];
+    final rows = await db.query(
+      'attendances',
+      where: 'user_id = ? AND date = ?',
+      whereArgs: [userId, todayStr],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return _mapRowToAttendance(rows.first);
+  }
+
+  Future<List<AttendanceRecordModel>> getAttendanceHistory(String userId, {int limit = 50}) async {
+    final db = await database;
+    final rows = await db.query(
+      'attendances',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC, check_in_time DESC',
+      limit: limit,
+    );
+    return rows.map((r) => _mapRowToAttendance(r)).toList();
+  }
+
+  AttendanceRecordModel _mapRowToAttendance(Map<String, dynamic> row) {
+    AttendanceStatus parsedStatus = AttendanceStatus.notCheckedIn;
+    final statusStr = row['status']?.toString();
+    if (statusStr == 'working' || statusStr == 'Sedang Bekerja') {
+      parsedStatus = AttendanceStatus.working;
+    } else if (statusStr == 'completed' || statusStr == 'Selesai Bekerja') {
+      parsedStatus = AttendanceStatus.completed;
+    }
+
+    return AttendanceRecordModel(
+      id: row['id']?.toString() ?? '',
+      userId: row['user_id']?.toString() ?? '',
+      userName: row['user_name']?.toString() ?? 'Karyawan',
+      role: row['role']?.toString() ?? 'kasir',
+      date: row['date'] != null
+          ? DateTime.tryParse(row['date'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      checkInTime: row['check_in_time'] != null
+          ? DateTime.tryParse(row['check_in_time'].toString())
+          : null,
+      checkOutTime: row['check_out_time'] != null
+          ? DateTime.tryParse(row['check_out_time'].toString())
+          : null,
+      status: parsedStatus,
+      notes: row['notes']?.toString(),
+    );
   }
 }
 
